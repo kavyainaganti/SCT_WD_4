@@ -1,104 +1,77 @@
-let tasks = [];
-const taskInput = document.getElementById('taskInput');
-const taskDateTime = document.getElementById('taskDateTime');
-const taskList = document.getElementById('taskList');
-document.addEventListener('DOMContentLoaded', () => {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-        tasks = JSON.parse(savedTasks);
-        renderTasks();
-    }
-});
-function addTask() {
-    const text = taskInput.value.trim();
-    const dateTime = taskDateTime.value;
-    
-    if (text === '') {
-        alert('Please enter a task description');
-        return;
-    }
-    
-    const newTask = {
-        id: Date.now(),
-        text,
-        completed: false,
-        dueDate: dateTime || null,
-        createdAt: new Date().toISOString()
-    };
-    
-    tasks.push(newTask);
+const form = document.getElementById("task-form");
+const taskInput = document.getElementById("task-input");
+const taskTime = document.getElementById("task-time");
+const taskList = document.getElementById("task-list");
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveTasks() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function renderTasks() {
+  taskList.innerHTML = "";
+  tasks.forEach((task, index) => {
+    const li = document.createElement("li");
+    li.className = task.completed ? "completed" : "";
+    li.innerHTML = `
+      <span>${task.text} - ${new Date(task.time).toLocaleString()}</span>
+      <div class="task-actions">
+        <button onclick="confirmCompletion(${index})">✓</button>
+        <button onclick="editTask(${index})">✎</button>
+        <button onclick="deleteTask(${index})">🗑</button>
+      </div>
+    `;
+    taskList.appendChild(li);
+  });
+}
+
+function confirmCompletion(index) {
+  const confirmBox = confirm("Have you completed this task?");
+  if (confirmBox) {
+    tasks[index].completed = true;
     saveTasks();
     renderTasks();
-    taskInput.value = '';
-    taskDateTime.value = '';
-}
-function renderTasks(filter = 'all') {
-    taskList.innerHTML = '';
-    
-    let filteredTasks = tasks;
-    if (filter === 'active') {
-        filteredTasks = tasks.filter(task => !task.completed);
-    } else if (filter === 'completed') {
-        filteredTasks = tasks.filter(task => task.completed);
+
+    const addNext = confirm("Do you want to add the next task?");
+    if (addNext) {
+      const newTask = prompt("Enter next task:");
+      const timeInput = prompt("Enter date and time (YYYY-MM-DDTHH:MM):");
+      if (newTask && timeInput) {
+        tasks.push({ text: newTask, time: timeInput, completed: false });
+        saveTasks();
+        renderTasks();
+      }
     }
-    
-    filteredTasks.sort((a, b) => {
-        const now = new Date();
-    
-        const aOverdue = a.dueDate ? new Date(a.dueDate) < now : false;
-        const bOverdue = b.dueDate ? new Date(b.dueDate) < now : false;
-        
-        if (aOverdue && !bOverdue) return -1;
-        if (!aOverdue && bOverdue) return 1;
-    
-        if (a.dueDate && b.dueDate) {
-            return new Date(a.dueDate) - new Date(b.dueDate);
-        } else if (a.dueDate) {
-            return -1;
-        } else if (b.dueDate) {
-            return 1;
-        }
-        
-        
-        return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-    
-    filteredTasks.forEach(task => {
-        const taskItem = document.createElement('li');
-        taskItem.className = task-item ${task.completed ? 'completed' : ''};
-        taskItem.dataset.id = task.id;
-        
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = task.completed;
-        checkbox.addEventListener('change', () => toggleTaskCompletion(task.id));
-        
-       
-        let textElement;
-        if (task.editing) {
-            const editInput = document.createElement('input');
-            editInput.type = 'text';
-            editInput.className = 'edit-input';
-            editInput.value = task.text;
-            editInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    saveEditedTask(task.id, editInput.value);
-                }
-            });
-            textElement = editInput;
-        } else {
-            const taskText = document.createElement('span');
-            taskText.className = task-text ${task.completed ? 'completed' : ''};
-            taskText.textContent = task.text;
-            textElement = taskText;
-        }
-    
-        let dueDateElement = document.createElement('span');
-        if (task.dueDate) {
-            const dueDate = new Date(task.dueDate);
-            const now = new Date();
-            const isOverdue = dueDate < now && !task.completed;
-            
-            dueDateElement.className = task-due ${isOverdue ? 'overdue' : ''};
-            dueDateElement.textContent = `Due: ${format
+  }
+}
+
+function editTask(index) {
+  const newText = prompt("Edit your task:", tasks[index].text);
+  if (newText !== null) {
+    tasks[index].text = newText;
+    saveTasks();
+    renderTasks();
+  }
+}
+
+function deleteTask(index) {
+  tasks.splice(index, 1);
+  saveTasks();
+  renderTasks();
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const task = {
+    text: taskInput.value,
+    time: taskTime.value,
+    completed: false,
+  };
+  tasks.push(task);
+  saveTasks();
+  renderTasks();
+  form.reset();
+});
+
+renderTasks();
